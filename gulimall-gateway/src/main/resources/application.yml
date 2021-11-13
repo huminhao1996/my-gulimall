@@ -1,0 +1,48 @@
+server:
+  port: 88
+
+spring:
+  application:
+    name: gulimall-gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848 #nacos地址
+    gateway:
+      routes:
+
+        #商品路由
+        - id: product_route
+          uri: lb://gulimall-product
+          predicates:
+            - Path=/api/product/**
+          filters:
+            - RewritePath=/api/(?<segment>/?.*),/$\{segment}
+
+        #第三方路由
+        - id: third_party_route
+            uri: lb://gulimall-third-party
+            predicates:
+              - Path=/api/thirdparty/**
+            filters:
+              - RewritePath=/api/thirdparty/(?<segment>/?.*),/$\{segment}
+
+        #会员路由
+        - id: member_route
+            uri: lb://gulimall-member
+            predicates:
+              - Path=/api/member/**
+            filters:
+              - RewritePath=/api/(?<segment>/?.*),/$\{segment}
+
+        # 仓库路由
+        - id: ware_route
+            uri: lb://gulimall-ware
+            predicates:
+              - Path=/api/ware/**
+            filters:
+              - RewritePath=/api/(?<segment>/?.*),/$\{segment}
+
+  ## 前端项目，/api
+## http://localhost:88/api/captcha.jpg   http://localhost:8080/renren-fast/captcha.jpg
+## http://localhost:88/api/product/category/list/tree http://localhost:10000/product/category/list/tree
