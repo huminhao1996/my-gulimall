@@ -19,6 +19,12 @@ spring:
           filters:
             - RewritePath=/api/(?<segment>/?.*),/$\{segment}
 
+        # 检索路由
+        - id: gulimall_search_route
+            uri: lb://gulimall-search
+            predicates:
+              - Host=search.gulimall.com
+
         #第三方路由
         - id: third_party_route
             uri: lb://gulimall-third-party
