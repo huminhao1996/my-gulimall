@@ -1,6 +1,11 @@
 package com.atguigu.gulimall.order.service.impl;
 
 import com.alibaba.fastjson.TypeReference;
+import com.atguigu.gulimall.order.feign.CartFeignService;
+import com.atguigu.gulimall.order.feign.MemberFeignService;
+import com.atguigu.gulimall.order.feign.ProductFeignService;
+import com.atguigu.gulimall.order.feign.WmsFeignService;
+import com.atguigu.gulimall.order.interceptor.LoginUserInterceptor;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
@@ -56,17 +61,17 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
 
     private ThreadLocal<OrderSubmitVo> confirmVoThreadLocal = new ThreadLocal<>();
 
-//    @Autowired
-//    private MemberFeignService memberFeignService;
-//
-//    @Autowired
-//    private CartFeignService cartFeignService;
-//
-//    @Autowired
-//    private WmsFeignService wmsFeignService;
-//
-//    @Autowired
-//    private ProductFeignService productFeignService;
+    @Autowired
+    private MemberFeignService memberFeignService;
+
+    @Autowired
+    private CartFeignService cartFeignService;
+
+    @Autowired
+    private WmsFeignService wmsFeignService;
+
+    @Autowired
+    private ProductFeignService productFeignService;
 
     @Autowired
     private OrderItemService orderItemService;
@@ -83,8 +88,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     @Autowired
     private BestPayService bestPayService;
 
-//    @Autowired
-//    private ThreadPoolExecutor threadPoolExecutor;
+    @Autowired
+    private ThreadPoolExecutor threadPoolExecutor;
 
     @Override
     public PageUtils queryPage(Map<String, Object> params) {
@@ -106,65 +111,65 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
         //构建OrderConfirmVo
         OrderConfirmVo confirmVo = new OrderConfirmVo();
 
-//        //获取当前用户登录的信息
-//        MemberResponseVo memberResponseVo = LoginUserInterceptor.loginUser.get();
-//
-//        //TODO :获取当前线程请求头信息(解决Feign异步调用丢失请求头问题)
-//        RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
-//
-//        //开启第一个异步任务
-//        CompletableFuture<Void> addressFuture = CompletableFuture.runAsync(() -> {
-//
-//            //每一个线程都来共享之前的请求数据
-//            RequestContextHolder.setRequestAttributes(requestAttributes);
-//
-//            //1、远程查询所有的收获地址列表
-//            List<MemberAddressVo> address = memberFeignService.getAddress(memberResponseVo.getId());
-//            confirmVo.setMemberAddressVos(address);
-//        }, threadPoolExecutor);
-//
-//        //开启第二个异步任务
-//        CompletableFuture<Void> cartInfoFuture = CompletableFuture.runAsync(() -> {
-//
-//            //每一个线程都来共享之前的请求数据
-//            RequestContextHolder.setRequestAttributes(requestAttributes);
-//
-//            //2、远程查询购物车所有选中的购物项
-//            List<OrderItemVo> currentCartItems = cartFeignService.getCurrentCartItems();
-//            confirmVo.setItems(currentCartItems);
-//            //feign在远程调用之前要构造请求，调用很多的拦截器
-//        }, threadPoolExecutor).thenRunAsync(() -> {
-//            List<OrderItemVo> items = confirmVo.getItems();
-//            //获取全部商品的id
-//            List<Long> skuIds = items.stream()
-//                    .map((itemVo -> itemVo.getSkuId()))
-//                    .collect(Collectors.toList());
-//
-//            //远程查询商品库存信息
-//            R skuHasStock = wmsFeignService.getSkuHasStock(skuIds);
-//            List<SkuStockVo> skuStockVos = skuHasStock.getData("data", new TypeReference<List<SkuStockVo>>() {});
-//
-//            if (skuStockVos != null && skuStockVos.size() > 0) {
-//                //将skuStockVos集合转换为map
-//                Map<Long, Boolean> skuHasStockMap = skuStockVos.stream().collect(Collectors.toMap(SkuStockVo::getSkuId, SkuStockVo::getHasStock));
-//                confirmVo.setStocks(skuHasStockMap);
-//            }
-//        },threadPoolExecutor);
-//
-//        //3、查询用户积分
-//        Integer integration = memberResponseVo.getIntegration();
-//        confirmVo.setIntegration(integration);
-//
-//        //4、价格数据自动计算
-//
-//        //TODO 5、防重令牌(防止表单重复提交)
-//        //为用户设置一个token，三十分钟过期时间（存在redis）
-//        String token = UUID.randomUUID().toString().replace("-", "");
-//        redisTemplate.opsForValue().set(USER_ORDER_TOKEN_PREFIX+memberResponseVo.getId(),token,30, TimeUnit.MINUTES);
-//        confirmVo.setOrderToken(token);
-//
-//
-//        CompletableFuture.allOf(addressFuture,cartInfoFuture).get();
+        //获取当前用户登录的信息
+        MemberResponseVo memberResponseVo = LoginUserInterceptor.loginUser.get();
+
+        //TODO :获取当前线程请求头信息(解决Feign异步调用丢失请求头问题)
+        RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+
+        //开启第一个异步任务
+        CompletableFuture<Void> addressFuture = CompletableFuture.runAsync(() -> {
+
+            //每一个线程都来共享之前的请求数据
+            RequestContextHolder.setRequestAttributes(requestAttributes);
+
+            //1、远程查询所有的收获地址列表
+            List<MemberAddressVo> address = memberFeignService.getAddress(memberResponseVo.getId());
+            confirmVo.setMemberAddressVos(address);
+        }, threadPoolExecutor);
+
+        //开启第二个异步任务
+        CompletableFuture<Void> cartInfoFuture = CompletableFuture.runAsync(() -> {
+
+            //每一个线程都来共享之前的请求数据
+            RequestContextHolder.setRequestAttributes(requestAttributes);
+
+            //2、远程查询购物车所有选中的购物项
+            List<OrderItemVo> currentCartItems = cartFeignService.getCurrentCartItems();
+            confirmVo.setItems(currentCartItems);
+            //feign在远程调用之前要构造请求，调用很多的拦截器
+        }, threadPoolExecutor).thenRunAsync(() -> {
+            List<OrderItemVo> items = confirmVo.getItems();
+            //获取全部商品的id
+            List<Long> skuIds = items.stream()
+                    .map((itemVo -> itemVo.getSkuId()))
+                    .collect(Collectors.toList());
+
+            //远程查询商品库存信息
+            R skuHasStock = wmsFeignService.getSkuHasStock(skuIds);
+            List<SkuStockVo> skuStockVos = skuHasStock.getData("data", new TypeReference<List<SkuStockVo>>() {});
+
+            if (skuStockVos != null && skuStockVos.size() > 0) {
+                //将skuStockVos集合转换为map
+                Map<Long, Boolean> skuHasStockMap = skuStockVos.stream().collect(Collectors.toMap(SkuStockVo::getSkuId, SkuStockVo::getHasStock));
+                confirmVo.setStocks(skuHasStockMap);
+            }
+        },threadPoolExecutor);
+
+        //3、查询用户积分
+        Integer integration = memberResponseVo.getIntegration();
+        confirmVo.setIntegration(integration);
+
+        //4、价格数据自动计算
+
+        //TODO 5、防重令牌(防止表单重复提交)
+        //为用户设置一个token，三十分钟过期时间（存在redis）
+        String token = UUID.randomUUID().toString().replace("-", "");
+        redisTemplate.opsForValue().set(USER_ORDER_TOKEN_PREFIX+memberResponseVo.getId(),token,30, TimeUnit.MINUTES);
+        confirmVo.setOrderToken(token);
+
+
+        CompletableFuture.allOf(addressFuture,cartInfoFuture).get();
 
         return confirmVo;
     }
@@ -180,87 +185,86 @@ public class OrderServiceImpl extends ServiceImpl<OrderDao, OrderEntity> impleme
     // @GlobalTransactional(rollbackFor = Exception.class)
     @Override
     public SubmitOrderResponseVo submitOrder(OrderSubmitVo vo) {
-//
-//        confirmVoThreadLocal.set(vo);
-//
-//        SubmitOrderResponseVo responseVo = new SubmitOrderResponseVo();
-//        //去创建、下订单、验令牌、验价格、锁定库存...
-//
-//        //获取当前用户登录的信息
-//        MemberResponseVo memberResponseVo = LoginUserInterceptor.loginUser.get();
-//        responseVo.setCode(0);
-//
-//        //1、验证令牌是否合法【令牌的对比和删除必须保证原子性】
-//        String script = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
-//        String orderToken = vo.getOrderToken();
-//
-//        //通过lure脚本原子验证令牌和删除令牌
-//        Long result = redisTemplate.execute(new DefaultRedisScript<Long>(script, Long.class),
-//                Arrays.asList(USER_ORDER_TOKEN_PREFIX + memberResponseVo.getId()),
-//                orderToken);
-//
-//        if (result == 0L) {
-//            //令牌验证失败
-//            responseVo.setCode(1);
-//            return responseVo;
-//        } else {
-//            //令牌验证成功
-//            //1、创建订单、订单项等信息
-//            OrderCreateTo order = createOrder();
-//
-//            //2、验证价格
-//            BigDecimal payAmount = order.getOrder().getPayAmount();
-//            BigDecimal payPrice = vo.getPayPrice();
-//
-//            if (Math.abs(payAmount.subtract(payPrice).doubleValue()) < 0.01) {
-//                //金额对比
-//                //TODO 3、保存订单
-//                saveOrder(order);
-//
-//                //4、库存锁定,只要有异常，回滚订单数据
-//                //订单号、所有订单项信息(skuId,skuNum,skuName)
-//                WareSkuLockVo lockVo = new WareSkuLockVo();
-//                lockVo.setOrderSn(order.getOrder().getOrderSn());
-//
-//                //获取出要锁定的商品数据信息
-//                List<OrderItemVo> orderItemVos = order.getOrderItems().stream().map((item) -> {
-//                    OrderItemVo orderItemVo = new OrderItemVo();
-//                    orderItemVo.setSkuId(item.getSkuId());
-//                    orderItemVo.setCount(item.getSkuQuantity());
-//                    orderItemVo.setTitle(item.getSkuName());
-//                    return orderItemVo;
-//                }).collect(Collectors.toList());
-//                lockVo.setLocks(orderItemVos);
-//
-//                //TODO 调用远程锁定库存的方法
-//                //出现的问题：扣减库存成功了，但是由于网络原因超时，出现异常，导致订单事务回滚，库存事务不回滚(解决方案：seata)
-//                //为了保证高并发，不推荐使用seata，因为是加锁，并行化，提升不了效率,可以发消息给库存服务
-//                R r = wmsFeignService.orderLockStock(lockVo);
-//                if (r.getCode() == 0) {
-//                    //锁定成功
-//                    responseVo.setOrder(order.getOrder());
-//                    // int i = 10/0;
-//
-//                    //TODO 订单创建成功，发送消息给MQ
-//                    rabbitTemplate.convertAndSend("order-event-exchange","order.create.order",order.getOrder());
-//
-//                    //删除购物车里的数据
-//                    redisTemplate.delete(CART_PREFIX+memberResponseVo.getId());
-//                    return responseVo;
-//                } else {
-//                    //锁定失败
-//                    String msg = (String) r.get("msg");
-//                    throw new NoStockException(msg);
-//                    // responseVo.setCode(3);
-//                    // return responseVo;
-//                }
-//
-//            } else {
-//                responseVo.setCode(2);
-//                return responseVo;
-//            }
-//        }
-        return null;
+
+        confirmVoThreadLocal.set(vo);
+
+        SubmitOrderResponseVo responseVo = new SubmitOrderResponseVo();
+        //去创建、下订单、验令牌、验价格、锁定库存...
+
+        //获取当前用户登录的信息
+        MemberResponseVo memberResponseVo = LoginUserInterceptor.loginUser.get();
+        responseVo.setCode(0);
+
+        //1、验证令牌是否合法【令牌的对比和删除必须保证原子性】
+        String script = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
+        String orderToken = vo.getOrderToken();
+
+        //通过lure脚本原子验证令牌和删除令牌
+        Long result = redisTemplate.execute(new DefaultRedisScript<Long>(script, Long.class),
+                Arrays.asList(USER_ORDER_TOKEN_PREFIX + memberResponseVo.getId()),
+                orderToken);
+
+        if (result == 0L) {
+            //令牌验证失败
+            responseVo.setCode(1);
+            return responseVo;
+        } else {
+            //令牌验证成功
+            //1、创建订单、订单项等信息
+            OrderCreateTo order = createOrder();
+
+            //2、验证价格
+            BigDecimal payAmount = order.getOrder().getPayAmount();
+            BigDecimal payPrice = vo.getPayPrice();
+
+            if (Math.abs(payAmount.subtract(payPrice).doubleValue()) < 0.01) {
+                //金额对比
+                //TODO 3、保存订单
+                saveOrder(order);
+
+                //4、库存锁定,只要有异常，回滚订单数据
+                //订单号、所有订单项信息(skuId,skuNum,skuName)
+                WareSkuLockVo lockVo = new WareSkuLockVo();
+                lockVo.setOrderSn(order.getOrder().getOrderSn());
+
+                //获取出要锁定的商品数据信息
+                List<OrderItemVo> orderItemVos = order.getOrderItems().stream().map((item) -> {
+                    OrderItemVo orderItemVo = new OrderItemVo();
+                    orderItemVo.setSkuId(item.getSkuId());
+                    orderItemVo.setCount(item.getSkuQuantity());
+                    orderItemVo.setTitle(item.getSkuName());
+                    return orderItemVo;
+                }).collect(Collectors.toList());
+                lockVo.setLocks(orderItemVos);
+
+                //TODO 调用远程锁定库存的方法
+                //出现的问题：扣减库存成功了，但是由于网络原因超时，出现异常，导致订单事务回滚，库存事务不回滚(解决方案：seata)
+                //为了保证高并发，不推荐使用seata，因为是加锁，并行化，提升不了效率,可以发消息给库存服务
+                R r = wmsFeignService.orderLockStock(lockVo);
+                if (r.getCode() == 0) {
+                    //锁定成功
+                    responseVo.setOrder(order.getOrder());
+                    // int i = 10/0;
+
+                    //TODO 订单创建成功，发送消息给MQ
+                    rabbitTemplate.convertAndSend("order-event-exchange", "order.create.order", order.getOrder());
+
+                    //删除购物车里的数据
+                    redisTemplate.delete(CART_PREFIX + memberResponseVo.getId());
+                    return responseVo;
+                } else {
+                    //锁定失败
+                    String msg = (String) r.get("msg");
+                    throw new NoStockException(msg);
+                    // responseVo.setCode(3);
+                    // return responseVo;
+                }
+
+            } else {
+                responseVo.setCode(2);
+                return responseVo;
+            }
+        }
     }
 
     /**

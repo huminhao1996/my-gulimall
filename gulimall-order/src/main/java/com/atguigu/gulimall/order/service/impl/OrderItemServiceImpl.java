@@ -35,7 +35,7 @@ public class OrderItemServiceImpl extends ServiceImpl<OrderItemDao, OrderItemEnt
      * channel：当前传输数据的通道
      */
     //@RabbitListener(queues = {"hello-java-queue"})
-    public void revieveMessage(Message message,
+    public void receiveMessage(Message message,
                                OrderReturnReasonEntity content) {
         //拿到主体内容
         byte[] body = message.getBody();

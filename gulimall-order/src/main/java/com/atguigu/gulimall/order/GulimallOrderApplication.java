@@ -14,7 +14,21 @@ import org.springframework.session.data.redis.config.annotation.web.http.EnableR
  * 1、引入amqp场景;RabbitAutoConfiguration就会自动生效
  * 2、给容器中自动配置了
  *      RabbitTemplate、AmqpAdmin、CachingConnectionFactory、RabbitMessagingTemplate
- * 3、@EnableRabbit:
+ * 3、给配置文件中配置 spring.rabbitmq 信息
+ * 4、@EnableRabbit: 开启rabbitmq功能
+ * 5、监听消息,使用RabbitListener 必须有@EnableRabbit
+ *      @RabbitListener: 类+方法上 (监听哪些队列即可)
+ *      @RabiitHandler: 标在方法上(重载区分不同的消息)
+ *
+ * @Transactional 本地事务失效的问题
+ * 同一个对象内事务方法互相调用默认失效,原因: 绕过了代理对象,事务使用代理对象来控制的
+ * 解决: 使用代理对象来调用事务方法
+ * 1)、引入aop-starter;spring-boot-starter-aop: 引入了aspectJ
+ * 2)、@EnableAspectJAutoProxy(exposeProxy = true),开启 aspectJ的动态代理功能
+ * 3)、本类互相调用对象
+ *   OrderServiceImpl orderService= (OrderServiceImpl) AopContext.currentProxy()
+ *      orderService.b();
+ *      orderService.c();
  *
  * Seata控制分布式事务
  *  1）、每一个微服务必须创建undo_Log
